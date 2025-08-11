@@ -1,9 +1,10 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, redirect, url_for
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from flask_dance.contrib.github import github
 from flask_dance.contrib.google import google
 from werkzeug.security import check_password_hash
 import json
+import pdb
 
 from app import db, login_manager
 from app.models import User, OAuth
@@ -24,6 +25,7 @@ def load_user(user_id):
 
 @bp.route('/login', methods=['POST'])
 def login():
+    pdb.set_trace()
     """Traditional login endpoint."""
     try:
         data = login_schema.load(request.json)
@@ -37,7 +39,7 @@ def login():
             'access_token': access_token,
             'user': user
         }))
-    
+    pdb.set_trace()
     return jsonify({'error': 'Invalid credentials'}), 401
 
 @bp.route('/register', methods=['POST'])
@@ -150,6 +152,7 @@ def github_login():
 
 @bp.route('/google')
 def google_login():
+    pdb.set_trace()
     """Google OAuth login endpoint."""
     if not google.authorized:
         return jsonify({'error': 'Not authorized with Google'}), 401
@@ -163,6 +166,7 @@ def google_login():
     google_user_id = google_info['id']
     
     # Find or create user
+    pdb.set_trace()
     user = User.query.filter_by(google_id=google_user_id).first()
     
     if not user:

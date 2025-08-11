@@ -55,10 +55,23 @@ def create_app(config_name='default'):
     from app.api.users import bp as users_bp
     app.register_blueprint(users_bp, url_prefix='/api/users')
     
-    # Create database tables
+    # Set up OAuth signal handlers
+    from flask_dance.consumer import oauth_authorized
+    
+    @oauth_authorized.connect_via(github_bp)
+    def github_logged_in(blueprint, token):
+        """Handle GitHub OAuth callback."""
+        from app.oauth_handler import OAuthHandler
+        return OAuthHandler.handle_oauth_callback('github')
+    
+    @oauth_authorized.connect_via(google_bp)
+    def google_logged_in(blueprint, token):
+        """Handle Google OAuth callback."""  
+        from app.oauth_handler import OAuthHandler
+        return OAuthHandler.handle_oauth_callback('google')
+    
+    # Create database tables if they don't exist
     with app.app_context():
-        # Drop all tables and recreate them (for development)
-        db.drop_all()
         db.create_all()
         print("✅ Database tables created successfully!")
     
