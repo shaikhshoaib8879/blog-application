@@ -9,6 +9,7 @@ class UserSchema(Schema):
     email = fields.Email(required=True)
     created_at = fields.DateTime(dump_only=True)
     is_active = fields.Bool(dump_only=True)
+    email_verified = fields.Bool(dump_only=True, data_key='emailVerified')
 
 class PostSchema(Schema):
     """Post serialization schema."""

@@ -1,13 +1,15 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, redirect, url_for, current_app
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from flask_dance.contrib.github import github
 from flask_dance.contrib.google import google
 from werkzeug.security import check_password_hash
 import json
+import pdb
 
 from app import db, login_manager
 from app.models import User, OAuth
 from app.schemas import LoginSchema, RegisterSchema, TokenSchema, UserSchema
+from app.utils import create_timed_token, verify_timed_token, send_email
 
 bp = Blueprint('auth_api', __name__)
 
@@ -29,15 +31,17 @@ def login():
         data = login_schema.load(request.json)
     except Exception as e:
         return jsonify({'error': 'Validation error', 'details': str(e)}), 400
-    
+    pdb.set_trace()
     user = User.query.filter_by(email=data['email']).first()
+    pdb.set_trace()
     if user and user.check_password(data['password']):
+        if not user.email_verified:
+            return jsonify({'error': 'Email not verified'}), 403
         access_token = create_access_token(identity=user.id)
         return jsonify(token_schema.dump({
             'access_token': access_token,
             'user': user
         }))
-    
     return jsonify({'error': 'Invalid credentials'}), 401
 
 @bp.route('/register', methods=['POST'])
@@ -65,12 +69,86 @@ def register():
     user.set_password(data['password'])
     db.session.add(user)
     db.session.commit()
-    
-    access_token = create_access_token(identity=user.id)
-    return jsonify(token_schema.dump({
-        'access_token': access_token,
-        'user': user
-    })), 201
+
+    # Send verification email
+    secret = current_app.config.get('SECRET_KEY', 'dev-secret-key')
+    token = create_timed_token({'sub': 'verify_email', 'uid': user.id, 'email': user.email}, secret, 60*60*24)
+    verify_url = f"http://127.0.0.1:5000/api/auth/verify-email?token={token}"
+    send_email(user.email, 'Verify your email', f"Click to verify your email: {verify_url}")
+
+    return jsonify({'message': 'Registration successful. Please verify your email to activate your account.'}), 201
+
+
+@bp.route('/verify-email', methods=['GET'])
+def verify_email():
+    token = request.args.get('token', '')
+    secret = current_app.config.get('SECRET_KEY', 'dev-secret-key')
+    data = verify_timed_token(token, secret)
+    frontend_base = 'http://localhost:3000'
+    if not data or data.get('sub') != 'verify_email':
+        return redirect(f"{frontend_base}/verify-email?status=failed&reason=invalid_or_expired")
+    user = User.query.get(int(data['uid']))
+    if not user:
+        return redirect(f"{frontend_base}/verify-email?status=failed&reason=user_not_found")
+    if not user.email_verified:
+        user.email_verified = True
+        from datetime import datetime
+        user.email_verified_at = datetime.utcnow()
+        db.session.commit()
+    return redirect(f"{frontend_base}/verify-email?status=success")
+
+
+@bp.route('/resend-verification', methods=['POST'])
+def resend_verification():
+    body = request.get_json(force=True) or {}
+    email = body.get('email')
+    if not email:
+        return jsonify({'error': 'Email is required'}), 400
+    user = User.query.filter_by(email=email).first()
+    # Do not leak whether account exists or verified
+    if user and not user.email_verified:
+        secret = current_app.config.get('SECRET_KEY', 'dev-secret-key')
+        token = create_timed_token({'sub': 'verify_email', 'uid': user.id, 'email': user.email}, secret, 60*60*24)
+        verify_url = f"http://127.0.0.1:5000/api/auth/verify-email?token={token}"
+        send_email(user.email, 'Verify your email', f"Click to verify your email: {verify_url}")
+    return jsonify({'message': 'If your account needs verification, a new link has been sent.'})
+
+
+@bp.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    pdb.set_trace()
+    body = request.get_json(force=True) or {}
+    email = body.get('email')
+    if not email:
+        return jsonify({'error': 'Email is required'}), 400
+    user = User.query.filter_by(email=email).first()
+    # Do not leak account existence
+    if user:
+        secret = current_app.config.get('SECRET_KEY', 'dev-secret-key')
+        token = create_timed_token({'sub': 'reset_password', 'uid': user.id}, secret, 60*60)
+        reset_url = f"http://localhost:3000/reset-password?token={token}"
+        send_email(email, 'Reset your password', f"Reset your password: {reset_url}")
+    return jsonify({'message': 'If an account exists for that email, a reset link has been sent.'})
+
+
+@bp.route('/reset-password', methods=['POST'])
+def reset_password():
+    pdb.set_trace()
+    body = request.get_json(force=True) or {}
+    token = body.get('token')
+    new_password = body.get('password')
+    if not token or not new_password:
+        return jsonify({'error': 'Token and password are required'}), 400
+    secret = current_app.config.get('SECRET_KEY', 'dev-secret-key')
+    data = verify_timed_token(token, secret)
+    if not data or data.get('sub') != 'reset_password':
+        return jsonify({'error': 'Invalid or expired token'}), 400
+    user = User.query.get(int(data['uid']))
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    user.set_password(new_password)
+    db.session.commit()
+    return jsonify({'message': 'Password reset successful'})
 
 @bp.route('/me', methods=['GET'])
 @jwt_required()

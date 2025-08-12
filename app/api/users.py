@@ -45,6 +45,12 @@ def update_profile():
         if existing_user:
             return jsonify({'error': 'Email already registered'}), 400
         user.email = data['email']
+
+    # Update optional profile fields
+    if 'firstName' in data:
+        user.firstName = data['firstName']
+    if 'lastName' in data:
+        user.lastName = data['lastName']
     
     db.session.commit()
     
