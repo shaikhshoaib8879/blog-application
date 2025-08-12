@@ -10,6 +10,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import OAuthCallback from './pages/OAuthCallback';
 import AuthError from './pages/AuthError';
+import VerifyEmail from './pages/VerifyEmail';
+import ResetPassword from './pages/ResetPassword';
 import './index.css';
 
 // Protected Route component
@@ -102,6 +104,8 @@ const AppContent: React.FC = () => {
         {/* OAuth Callback Route */}
         <Route path="/auth/callback" element={<OAuthCallback />} />
         <Route path="/auth/error" element={<AuthError />} />
+  <Route path="/verify-email" element={<VerifyEmail />} />
+  <Route path="/reset-password" element={<ResetPassword />} />
         
         {/* Protected Routes - Only accessible when authenticated */}
         <Route path="/create" element={

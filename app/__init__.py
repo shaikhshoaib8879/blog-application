@@ -73,6 +73,22 @@ def create_app(config_name='default'):
     # Create database tables if they don't exist
     with app.app_context():
         db.create_all()
+        # Ensure new columns exist (SQLite simple runtime migration)
+        try:
+            from sqlalchemy import inspect, text
+            insp = inspect(db.engine)
+            cols = [c['name'] for c in insp.get_columns('user')]
+            stmts = []
+            if 'email_verified' not in cols:
+                stmts.append("ALTER TABLE user ADD COLUMN email_verified BOOLEAN")
+            if 'email_verified_at' not in cols:
+                stmts.append("ALTER TABLE user ADD COLUMN email_verified_at DATETIME")
+            for s in stmts:
+                db.session.execute(text(s))
+            if stmts:
+                db.session.commit()
+        except Exception:
+            db.session.rollback()
         print("✅ Database tables created successfully!")
     
     return app

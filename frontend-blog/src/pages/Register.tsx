@@ -38,7 +38,9 @@ const Register: React.FC = () => {
         firstName: data.firstName,
         lastName: data.lastName,
       });
-      navigate('/');
+      // AuthContext.register currently expects token+user; backend now returns message.
+      // We'll navigate to a verify notice page.
+      navigate('/verify-email?status=pending');
     } catch (error) {
       // Error is handled in the context
     }

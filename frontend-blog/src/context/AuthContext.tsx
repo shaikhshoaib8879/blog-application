@@ -86,6 +86,7 @@ interface AuthContextType extends AuthState {
   googleLogin: (token: string) => Promise<void>;
   githubLogin: (code: string) => Promise<void>;
   setAuthFromToken: (token: string, user: User) => void;
+  requestPasswordReset: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -122,12 +123,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       dispatch({ type: 'AUTH_START' });
       const response = await authAPI.login(email, password);
-      
+      if (response?.error === 'Email not verified') {
+        dispatch({ type: 'AUTH_FAILURE' });
+        toast.error('Please verify your email before logging in.');
+        return;
+      }
       const { user, token } = response;
-      
       localStorage.setItem('authToken', token);
       localStorage.setItem('user', JSON.stringify(user));
-      
       dispatch({ type: 'AUTH_SUCCESS', payload: { user, token } });
       toast.success('Login successful!');
     } catch (error: any) {
@@ -147,14 +150,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       dispatch({ type: 'AUTH_START' });
       const response = await authAPI.register(userData);
-      
-      const { user, token } = response;
-      
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      
-      dispatch({ type: 'AUTH_SUCCESS', payload: { user, token } });
-      toast.success('Registration successful!');
+  // New backend returns a message asking to verify email
+  dispatch({ type: 'AUTH_FAILURE' });
+  toast.success('Registration successful! Please verify your email.');
     } catch (error: any) {
       dispatch({ type: 'AUTH_FAILURE' });
       toast.error(error.response?.data?.message || 'Registration failed');
@@ -233,6 +231,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     googleLogin,
     githubLogin,
     setAuthFromToken,
+    requestPasswordReset: async (email: string) => {
+      await authAPI.forgotPassword(email);
+      toast.success('If an account exists, a reset link has been sent.');
+    },
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
