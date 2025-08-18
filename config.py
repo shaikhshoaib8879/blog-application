@@ -24,6 +24,15 @@ class Config:
     OAUTHLIB_INSECURE_TRANSPORT = os.environ.get('OAUTHLIB_INSECURE_TRANSPORT', '0') == '1'
     OAUTHLIB_RELAX_TOKEN_SCOPE = os.environ.get('OAUTHLIB_RELAX_TOKEN_SCOPE', '0') == '1'
 
+    # S3-compatible Storage Configuration
+    STORAGE_DRIVER = os.environ.get('STORAGE_DRIVER', 'local')  # 'local' | 's3'
+    S3_ENDPOINT_URL = os.environ.get('S3_ENDPOINT_URL')  # e.g., https://<account>.r2.cloudflarestorage.com
+    S3_REGION = os.environ.get('S3_REGION', 'auto')
+    S3_BUCKET = os.environ.get('S3_BUCKET')
+    S3_ACCESS_KEY_ID = os.environ.get('S3_ACCESS_KEY_ID')
+    S3_SECRET_ACCESS_KEY = os.environ.get('S3_SECRET_ACCESS_KEY')
+    S3_PUBLIC_BASE_URL = os.environ.get('S3_PUBLIC_BASE_URL')  # e.g., https://pub.example.com or r2.dev bucket domain
+
 class DevelopmentConfig(Config):
     """Development configuration."""
     DEBUG = True

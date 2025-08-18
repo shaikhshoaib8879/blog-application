@@ -123,11 +123,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       dispatch({ type: 'AUTH_START' });
       const response = await authAPI.login(email, password);
-      if (response?.error === 'Email not verified') {
-        dispatch({ type: 'AUTH_FAILURE' });
-        toast.error('Please verify your email before logging in.');
-        return;
-      }
       const { user, token } = response;
       localStorage.setItem('authToken', token);
       localStorage.setItem('user', JSON.stringify(user));
@@ -135,7 +130,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       toast.success('Login successful!');
     } catch (error: any) {
       dispatch({ type: 'AUTH_FAILURE' });
-      toast.error(error.response?.data?.message || 'Login failed');
+      const serverMsg = error?.response?.data?.error || error?.response?.data?.message;
+      if (error?.response?.status === 403 && serverMsg === 'Email not verified') {
+        toast.error('Please verify your email before logging in.');
+      } else {
+        toast.error(serverMsg || 'Login failed');
+      }
       throw error;
     }
   };
@@ -149,7 +149,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }) => {
     try {
       dispatch({ type: 'AUTH_START' });
-      const response = await authAPI.register(userData);
+      await authAPI.register(userData);
   // New backend returns a message asking to verify email
   dispatch({ type: 'AUTH_FAILURE' });
   toast.success('Registration successful! Please verify your email.');

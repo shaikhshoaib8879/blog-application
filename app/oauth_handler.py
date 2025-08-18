@@ -236,7 +236,7 @@ class OAuthHandler:
             
             # Create JWT token
             print("🔥 Creating JWT token...")
-            access_token = create_access_token(identity=user.id)
+            access_token = create_access_token(identity=str(user.id))
             
             # Prepare user data for frontend
             user_response = {

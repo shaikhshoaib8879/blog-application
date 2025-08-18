@@ -62,7 +62,6 @@ def send_email(to_email: str, subject: str, body: str) -> None:
     smtp_port = int(os.environ.get('SMTP_PORT', '587'))
     smtp_use_tls = os.environ.get('SMTP_USE_TLS', '1') == '1'
     from_email = os.environ.get('FROM_EMAIL', smtp_user or 'no-reply@example.com')
-    pdb.set_trace()
     if not smtp_host or not smtp_user or not smtp_password:
         print(f"[EMAIL:console] To: {to_email}\nSubject: {subject}\n\n{body}\n")
         return

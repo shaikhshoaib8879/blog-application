@@ -20,7 +20,7 @@ const OAuthCallback: React.FC = () => {
         navigate('/login');
         return;
       }
-      {debugger}
+      
       if (token && userEncoded) {
         try {
           // Decode user data from URL

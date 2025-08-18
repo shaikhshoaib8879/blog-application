@@ -24,8 +24,45 @@ def create_app(config_name='default'):
     login_manager.init_app(app)
     jwt.init_app(app)
     
-    # Configure CORS
-    CORS(app, origins=app.config['CORS_ORIGINS'], supports_credentials=True)
+    # JWT error handlers for clearer responses (avoid silent 422s)
+    from flask_jwt_extended import (
+        jwt_required,
+        get_jwt_identity,
+    )
+    
+    @jwt.unauthorized_loader
+    def _unauthorized(reason):
+        return ({'error': 'Unauthorized', 'reason': reason}, 401)
+
+    @jwt.invalid_token_loader
+    def _invalid_token(reason):
+        return ({'error': 'Invalid token', 'reason': reason}, 422)
+
+    @jwt.expired_token_loader
+    def _expired_token(header, payload):
+        return ({'error': 'Token expired'}, 401)
+
+    @jwt.needs_fresh_token_loader
+    def _needs_fresh(header, payload):
+        return ({'error': 'Fresh token required'}, 401)
+
+    @jwt.revoked_token_loader
+    def _revoked(header, payload):
+        return ({'error': 'Token revoked'}, 401)
+    
+    # Configure CORS (allow common dev ports and Authorization header)
+    CORS(
+        app,
+        resources={
+            r"/api/*": {
+                "origins": app.config['CORS_ORIGINS'],
+                "supports_credentials": True,
+                "allow_headers": ["Content-Type", "Authorization"],
+                "expose_headers": ["Content-Type", "Authorization"],
+                "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+            }
+        },
+    )
     
     # OAuth Blueprints
     github_bp = make_github_blueprint(
@@ -54,6 +91,9 @@ def create_app(config_name='default'):
     
     from app.api.users import bp as users_bp
     app.register_blueprint(users_bp, url_prefix='/api/users')
+    
+    from app.api.media import bp as media_bp
+    app.register_blueprint(media_bp, url_prefix='/api/media')
     
     # Set up OAuth signal handlers
     from flask_dance.consumer import oauth_authorized
@@ -86,6 +126,25 @@ def create_app(config_name='default'):
             for s in stmts:
                 db.session.execute(text(s))
             if stmts:
+                db.session.commit()
+            # Ensure 'post' table has expected columns
+            post_cols = [c['name'] for c in insp.get_columns('post')]
+            post_stmts = []
+            if 'excerpt' not in post_cols:
+                post_stmts.append("ALTER TABLE post ADD COLUMN excerpt TEXT")
+            if 'slug' not in post_cols:
+                post_stmts.append("ALTER TABLE post ADD COLUMN slug VARCHAR(200)")
+            if 'published_at' not in post_cols:
+                post_stmts.append("ALTER TABLE post ADD COLUMN published_at DATETIME")
+            if 'published' not in post_cols:
+                post_stmts.append("ALTER TABLE post ADD COLUMN published BOOLEAN DEFAULT 0")
+            if 'featured_image' not in post_cols:
+                post_stmts.append("ALTER TABLE post ADD COLUMN featured_image VARCHAR(500)")
+            if 'views' not in post_cols:
+                post_stmts.append("ALTER TABLE post ADD COLUMN views INTEGER DEFAULT 0")
+            for s in post_stmts:
+                db.session.execute(text(s))
+            if post_stmts:
                 db.session.commit()
         except Exception:
             db.session.rollback()

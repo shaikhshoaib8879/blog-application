@@ -1,11 +1,12 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useBlogPosts } from '../hooks/useBlogPosts';
 import { PenTool, Users, BookOpen, TrendingUp, ArrowRight, Calendar, MessageCircle, Heart } from 'lucide-react';
 
 const Home: React.FC = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const { posts, loading } = useBlogPosts(1, 6); // Get latest 6 posts for preview
 
   const features = [
@@ -54,12 +55,18 @@ const Home: React.FC = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               {isAuthenticated ? (
                 <>
-                  <Link
-                    to="/create"
+                  <button
+                    onClick={async () => {
+                      try {
+                        // create draft on backend then navigate
+                        const draft = await (await import('../services/api')).blogAPI.createPostNew({});
+                        if (draft?.id) navigate(`/post/${draft.id}/create`, { state: { newPost: true } });
+                      } catch (e) {}
+                    }}
                     className="bg-white text-primary-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
                   >
                     Start Writing
-                  </Link>
+                  </button>
                   <Link
                     to="/dashboard"
                     className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-primary-600 transition-colors"
@@ -167,7 +174,7 @@ const Home: React.FC = () => {
                     
                     <h3 className="text-xl font-semibold text-gray-900 mb-3 line-clamp-2">
                       <Link
-                        to={`/posts/${post.id}`}
+                        to={`/post/${post.id}/view`}
                         className="hover:text-primary-600 transition-colors"
                       >
                         {post.title}
@@ -223,12 +230,17 @@ const Home: React.FC = () => {
               <h3 className="text-xl font-semibold text-gray-900 mb-2">No posts yet</h3>
               <p className="text-gray-600 mb-6">Be the first to share your story!</p>
               {isAuthenticated && (
-                <Link
-                  to="/create"
+                <button
+                  onClick={async () => {
+                    try {
+                      const draft = await (await import('../services/api')).blogAPI.createPostNew({});
+                      if (draft?.id) navigate(`/post/${draft.id}/create`, { state: { newPost: true } });
+                    } catch (e) {}
+                  }}
                   className="btn-primary"
                 >
                   Write your first post
-                </Link>
+                </button>
               )}
             </div>
           )}

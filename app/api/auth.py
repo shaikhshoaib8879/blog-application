@@ -4,7 +4,6 @@ from flask_dance.contrib.github import github
 from flask_dance.contrib.google import google
 from werkzeug.security import check_password_hash
 import json
-import pdb
 
 from app import db, login_manager
 from app.models import User, OAuth
@@ -31,13 +30,11 @@ def login():
         data = login_schema.load(request.json)
     except Exception as e:
         return jsonify({'error': 'Validation error', 'details': str(e)}), 400
-    pdb.set_trace()
     user = User.query.filter_by(email=data['email']).first()
-    pdb.set_trace()
     if user and user.check_password(data['password']):
         if not user.email_verified:
             return jsonify({'error': 'Email not verified'}), 403
-        access_token = create_access_token(identity=user.id)
+        access_token = create_access_token(identity=str(user.id))
         return jsonify(token_schema.dump({
             'access_token': access_token,
             'user': user
@@ -116,7 +113,6 @@ def resend_verification():
 
 @bp.route('/forgot-password', methods=['POST'])
 def forgot_password():
-    pdb.set_trace()
     body = request.get_json(force=True) or {}
     email = body.get('email')
     if not email:
@@ -133,7 +129,6 @@ def forgot_password():
 
 @bp.route('/reset-password', methods=['POST'])
 def reset_password():
-    pdb.set_trace()
     body = request.get_json(force=True) or {}
     token = body.get('token')
     new_password = body.get('password')
@@ -155,6 +150,10 @@ def reset_password():
 def get_current_user():
     """Get current user info."""
     user_id = get_jwt_identity()
+    try:
+        user_id = int(user_id)
+    except Exception:
+        return jsonify({'error': 'Invalid token identity'}), 401
     user = User.query.get(user_id)
     if not user:
         return jsonify({'error': 'User not found'}), 404
@@ -220,7 +219,7 @@ def github_login():
     
     db.session.commit()
     
-    access_token = create_access_token(identity=user.id)
+    access_token = create_access_token(identity=str(user.id))
     return jsonify(token_schema.dump({
         'access_token': access_token,
         'user': user
@@ -272,7 +271,7 @@ def google_login():
     
     db.session.commit()
     
-    access_token = create_access_token(identity=user.id)
+    access_token = create_access_token(identity=str(user.id))
     return jsonify(token_schema.dump({
         'access_token': access_token,
         'user': user

@@ -14,3 +14,6 @@ email-validator==2.0.0
 # psycopg2==2.9.7         # If you have PostgreSQL dev headers
 # SQLite fallback (no additional requirements)
 marshmallow==3.20.1
+Pillow==10.3.0
+requests==2.32.3
+boto3==1.34.162

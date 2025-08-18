@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useBlogPosts } from '../hooks/useBlogPosts';
 import { Search, Calendar, MessageCircle, Heart, User, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const PostsPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const { posts, loading, totalPages, searchPosts, fetchPosts } = useBlogPosts(currentPage, 12);
 
@@ -113,7 +114,7 @@ const PostsPage: React.FC = () => {
                     {/* Title */}
                     <h2 className="text-xl font-semibold text-gray-900 mb-3 line-clamp-2">
                       <Link
-                        to={`/posts/${post.id}`}
+                        to={`/post/${post.id}/view`}
                         className="hover:text-primary-600 transition-colors"
                       >
                         {post.title}
@@ -228,9 +229,17 @@ const PostsPage: React.FC = () => {
                 Clear search
               </button>
             )}
-            <Link to="/create" className="btn-primary">
+            <button
+              onClick={async () => {
+                try {
+                  const draft = await (await import('../services/api')).blogAPI.createPostNew({});
+                  if (draft?.id) navigate(`/post/${draft.id}/create`, { state: { newPost: true } });
+                } catch (e) {}
+              }}
+              className="btn-primary"
+            >
               Create your first post
-            </Link>
+            </button>
           </div>
         )}
       </div>

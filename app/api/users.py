@@ -16,6 +16,10 @@ users_schema = UserSchema(many=True)
 def get_profile():
     """Get current user's profile."""
     user_id = get_jwt_identity()
+    try:
+        user_id = int(user_id)
+    except Exception:
+        return jsonify({'error': 'Invalid token identity'}), 401
     user = User.query.get_or_404(user_id)
     
     return jsonify(user_schema.dump(user))
@@ -25,6 +29,10 @@ def get_profile():
 def update_profile():
     """Update current user's profile."""
     user_id = get_jwt_identity()
+    try:
+        user_id = int(user_id)
+    except Exception:
+        return jsonify({'error': 'Invalid token identity'}), 401
     user = User.query.get_or_404(user_id)
     
     try:
@@ -66,4 +74,34 @@ def get_user(user_id):
         'id': user.id,
         'username': user.username,
         'created_at': user.created_at
+    })
+
+@bp.route('/<int:user_id>/posts', methods=['GET'])
+def get_user_posts(user_id):
+    """Get posts by a specific user."""
+    from app.models import Post
+    from app.schemas import PostSchema
+    
+    user = User.query.get_or_404(user_id)
+    posts_schema = PostSchema(many=True)
+    
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    
+    posts = Post.query.filter_by(user_id=user_id, published=True).order_by(
+        Post.created_at.desc()
+    ).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    
+    return jsonify({
+        'data': posts_schema.dump(posts.items),
+        'pagination': {
+            'page': posts.page,
+            'pages': posts.pages,
+            'per_page': posts.per_page,
+            'total': posts.total,
+            'has_next': posts.has_next,
+            'has_prev': posts.has_prev
+        }
     })

@@ -13,7 +13,7 @@ interface LoginForm {
 
 const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const { login, isLoading, googleLogin, githubLogin } = useAuth();
+  const { login, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   

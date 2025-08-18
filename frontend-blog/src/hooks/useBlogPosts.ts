@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { blogAPI } from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -41,8 +41,9 @@ export const useBlogPosts = (initialPage = 1, limit = 10): UseBlogPostsResult =>
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(initialPage);
 
-  const fetchPosts = async (page = currentPage) => {
+  const fetchPosts = useCallback(async (page = currentPage) => {
     try {
+      console.log('renderrrrrrrrrrrrrrrrr')
       setLoading(true);
       setError(null);
       const response = await blogAPI.getAllPosts(page, limit);
@@ -55,12 +56,12 @@ export const useBlogPosts = (initialPage = 1, limit = 10): UseBlogPostsResult =>
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, limit]);
 
   const createPost = async (postData: any): Promise<BlogPost | null> => {
     try {
       setLoading(true);
-      const newPost = await blogAPI.createPost(postData);
+      const newPost = await blogAPI.createPostNew(postData);
       setPosts((prev) => [newPost, ...prev]);
       toast.success('Post created successfully!');
       return newPost;
@@ -125,7 +126,7 @@ export const useBlogPosts = (initialPage = 1, limit = 10): UseBlogPostsResult =>
 
   useEffect(() => {
     fetchPosts();
-  }, []);
+  }, [fetchPosts]);
 
   return {
     posts,
@@ -153,7 +154,7 @@ export const useSinglePost = (postId: string): UseSinglePostResult => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPost = async () => {
+  const fetchPost = useCallback(async () => {
     if (!postId) return;
     
     try {
@@ -167,11 +168,11 @@ export const useSinglePost = (postId: string): UseSinglePostResult => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [postId]);
 
   useEffect(() => {
     fetchPost();
-  }, [postId]);
+  }, [postId, fetchPost]);
 
   return {
     post,

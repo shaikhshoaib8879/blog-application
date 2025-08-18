@@ -43,12 +43,36 @@ class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     content = db.Column(db.Text, nullable=False)
+    excerpt = db.Column(db.Text, nullable=True)
+    slug = db.Column(db.String(200), unique=True, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    published_at = db.Column(db.DateTime, nullable=True)
     published = db.Column(db.Boolean, default=False)
+    featured_image = db.Column(db.String(500), nullable=True)
+    views = db.Column(db.Integer, default=0)
     
     # Foreign key to User
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    def generate_slug(self):
+        """Generate a URL-friendly slug from the title."""
+        import re
+        from urllib.parse import quote
+        
+        if not self.slug and self.title:
+            # Convert to lowercase and replace spaces/special chars with hyphens
+            slug = re.sub(r'[^a-zA-Z0-9\s]', '', self.title.lower())
+            slug = re.sub(r'\s+', '-', slug).strip('-')
+            
+            # Ensure uniqueness
+            base_slug = slug
+            counter = 1
+            while Post.query.filter_by(slug=slug).first():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            
+            self.slug = slug
     
     def __repr__(self):
         return f'<Post {self.title}>'

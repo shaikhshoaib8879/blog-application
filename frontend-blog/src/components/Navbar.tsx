@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { blogAPI } from '../services/api';
 import { 
   Menu, 
   X, 
@@ -18,6 +19,17 @@ const Navbar: React.FC = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const handleCreatePost = async () => {
+    try {
+      const draft = await blogAPI.createPostNew({});
+      if (draft?.id) {
+        navigate(`/post/${draft.id}/create`, { state: { newPost: true } });
+      }
+    } catch (e) {
+      // silent fail or show toast elsewhere
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -66,12 +78,12 @@ const Navbar: React.FC = () => {
 
             {isAuthenticated ? (
               <>
-                <Link
-                  to="/create"
+                <button
+                  onClick={handleCreatePost}
                   className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                 >
                   Create Post
-                </Link>
+                </button>
                 
                 <div className="relative">
                   <button
@@ -182,14 +194,13 @@ const Navbar: React.FC = () => {
 
               {isAuthenticated ? (
                 <>
-                  <Link
-                    to="/create"
-                    className="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50"
-                    onClick={() => setIsOpen(false)}
+                  <button
+                    onClick={async () => { setIsOpen(false); await handleCreatePost(); }}
+                    className="flex items-center w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50"
                   >
                     <PenTool className="h-5 w-5 mr-3" />
                     Create Post
-                  </Link>
+                  </button>
                   <Link
                     to="/profile"
                     className="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-50"

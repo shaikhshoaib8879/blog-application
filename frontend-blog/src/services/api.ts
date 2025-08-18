@@ -13,9 +13,12 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('authToken');
+    const raw = localStorage.getItem('authToken');
+    const token = raw && raw !== 'undefined' && raw !== 'null' ? raw : null;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      delete config.headers.Authorization;
     }
     return config;
   },
@@ -40,8 +43,9 @@ api.interceptors.response.use(
 // Auth API calls
 export const authAPI = {
   login: async (email: string, password: string) => {
-    const response = await api.post('/auth/login', { email, password });
-    return response.data;
+  const { data } = await api.post('/auth/login', { email, password });
+  // Backend returns { access_token, user }
+  return { user: data.user, token: data.access_token };
   },
   
   register: async (userData: {
@@ -77,13 +81,13 @@ export const authAPI = {
   
   // SSO Authentication
   googleAuth: async (token: string) => {
-    const response = await api.post('/auth/google', { token });
-    return response.data;
+  const { data } = await api.post('/auth/google', { token });
+  return { user: data.user, token: data.access_token };
   },
   
   githubAuth: async (code: string) => {
-    const response = await api.post('/auth/github', { code });
-    return response.data;
+  const { data } = await api.post('/auth/github', { code });
+  return { user: data.user, token: data.access_token };
   },
 };
 
@@ -105,13 +109,22 @@ export const blogAPI = {
     excerpt?: string;
     tags?: string[];
     published?: boolean;
+    featuredImage?: string;
   }) => {
     const response = await api.post('/posts', postData);
+    return response.data;
+  },
+  createPostNew: async (postData: any = {}) => {
+    const response = await api.post('/posts/new', postData);
     return response.data;
   },
   
   updatePost: async (id: string, postData: any) => {
     const response = await api.put(`/posts/${id}`, postData);
+    return response.data;
+  },
+  updatePostAlias: async (id: string, postData: any) => {
+    const response = await api.put(`/posts/${id}/update`, postData);
     return response.data;
   },
   
@@ -174,6 +187,30 @@ export const userAPI = {
         'Content-Type': 'multipart/form-data',
       },
     });
+    return response.data;
+  },
+};
+
+// Media/Upload API calls
+export const mediaAPI = {
+  uploadImage: async (file: File) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    const response = await api.post('/media/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+  
+  uploadImageByUrl: async (url: string) => {
+    const response = await api.post('/media/upload-by-url', { url });
+    return response.data;
+  },
+  
+  fetchUrl: async (url: string) => {
+    const response = await api.post('/media/fetch-url', { url });
     return response.data;
   },
 };

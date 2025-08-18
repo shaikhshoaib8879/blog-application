@@ -16,9 +16,15 @@ class PostSchema(Schema):
     id = fields.Int(dump_only=True)
     title = fields.Str(required=True)
     content = fields.Str(required=True)
+    excerpt = fields.Str(required=False, allow_none=True)
+    slug = fields.Str(dump_only=True)
     published = fields.Bool(load_default=False)
-    created_at = fields.DateTime(dump_only=True)
-    updated_at = fields.DateTime(dump_only=True)
+    published_at = fields.DateTime(dump_only=True, data_key='publishedAt')
+    created_at = fields.DateTime(dump_only=True, data_key='createdAt')
+    updated_at = fields.DateTime(dump_only=True, data_key='updatedAt')
+    featured_image = fields.Str(required=False, allow_none=True, data_key='featuredImage')
+    views = fields.Int(dump_only=True)
+    tags = fields.List(fields.Str(), load_default=[], dump_default=[])  # For future implementation
     author = fields.Nested(UserSchema, exclude=['email'], dump_only=True)
 
 class LoginSchema(Schema):

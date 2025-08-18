@@ -12,6 +12,9 @@ import OAuthCallback from './pages/OAuthCallback';
 import AuthError from './pages/AuthError';
 import VerifyEmail from './pages/VerifyEmail';
 import ResetPassword from './pages/ResetPassword';
+import CreatePost from './pages/CreatePost';
+import Dashboard from './pages/Dashboard';
+import PostDetail from './pages/PostDetail';
 import './index.css';
 
 // Protected Route component
@@ -60,24 +63,10 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 // Placeholder components for future pages
 const Posts: React.FC = () => <PostsPage />;
 
-const CreatePost: React.FC = () => (
-  <div className="container mx-auto px-4 py-8">
-    <h1 className="text-3xl font-bold mb-6">Create New Post</h1>
-    <p className="text-gray-600">Rich text editor for creating posts coming soon...</p>
-  </div>
-);
-
 const Profile: React.FC = () => (
   <div className="container mx-auto px-4 py-8">
     <h1 className="text-3xl font-bold mb-6">User Profile</h1>
     <p className="text-gray-600">User profile management coming soon...</p>
-  </div>
-);
-
-const Dashboard: React.FC = () => (
-  <div className="container mx-auto px-4 py-8">
-    <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
-    <p className="text-gray-600">User dashboard with analytics and post management coming soon...</p>
   </div>
 );
 
@@ -88,6 +77,24 @@ const AppContent: React.FC = () => {
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/posts" element={<Posts />} />
+        <Route path="/post/:postId/view" element={<PostDetail />} />
+        <Route path="/post/:postId/published/view" element={
+          <ProtectedRoute>
+            <PostDetail />
+          </ProtectedRoute>
+        } />
+        <Route path="/post/:postId/publsih" element={
+          <ProtectedRoute>
+            <PostDetail />
+          </ProtectedRoute>
+        } />
+        
+        {/* Preview Route - Protected */}
+        <Route path="/post/:postId/published" element={
+          <ProtectedRoute>
+            <PostDetail />
+          </ProtectedRoute>
+        } />
         
         {/* Auth Routes - Only accessible when not authenticated */}
         <Route path="/login" element={
@@ -108,11 +115,19 @@ const AppContent: React.FC = () => {
   <Route path="/reset-password" element={<ResetPassword />} />
         
         {/* Protected Routes - Only accessible when authenticated */}
-        <Route path="/create" element={
+  {/* Edit by id at /edit/:postId (existing) */}
+        <Route path="/edit/:postId" element={
           <ProtectedRoute>
             <CreatePost />
           </ProtectedRoute>
         } />
+  {/* Edit by id at /post/:postId/create (requested) */}
+  <Route path="/post/:postId/create" element={
+          <ProtectedRoute>
+            <CreatePost />
+          </ProtectedRoute>
+        } />
+  {/* Backward-compat: keep /post/:postId editing if needed */}
         <Route path="/profile" element={
           <ProtectedRoute>
             <Profile />
